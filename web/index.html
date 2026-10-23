@@ -1,0 +1,231 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DramaBox Studio</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' fill='%23f5f500'/%3E%3Cpath d='M4 10v4M8 6v12M12 3v18M16 7v10M20 10v4' stroke='%23000' stroke-width='2.4'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="studio.css">
+</head>
+<body>
+<div class="fx-grid" aria-hidden="true"></div>
+<div class="fx-lines" aria-hidden="true"></div>
+
+<div class="ticker" aria-hidden="true"><div class="ticker-track"><span id="ticker-a"></span><span id="ticker-b"></span></div></div>
+
+<header class="top">
+  <div class="brand" aria-label="DramaBox Studio">
+    <span class="brand-base">DRAMABOX<em>//</em>STUDIO</span>
+    <span class="brand-ghost c" aria-hidden="true">DRAMABOX//STUDIO</span>
+    <span class="brand-ghost m" aria-hidden="true">DRAMABOX//STUDIO</span>
+  </div>
+  <nav class="tabs" aria-label="Modes">
+    <button class="tab is-on" data-view="generate">01 GENERATE</button>
+    <button class="tab" data-view="dialogue">02 DIALOGUE</button>
+    <button class="tab" data-view="voices">03 VOICES</button>
+  </nav>
+  <div class="grow"></div>
+  <div class="sys mono">
+    <span class="sys-state" id="sys-state"><i></i><b>CONNECTING</b></span>
+    <span id="sys-vram"></span>
+    <button class="icon-btn fx-toggle" id="fx-toggle" aria-pressed="true" title="Toggle visual effects">FX</button>
+  </div>
+</header>
+
+<div class="layout">
+
+  <!-- ── Voice bank ───────────────────────────── -->
+  <aside class="panel bank" id="bank">
+    <span class="tick"></span>
+    <div class="row-between">
+      <span class="label">Voice_bank</span>
+      <span class="mono accent" id="bank-count">[00]</span>
+    </div>
+    <label class="search mono">
+      <span class="cy">&gt;</span>
+      <input type="text" id="bank-search" placeholder="search_voice" aria-label="Search voices" autocomplete="off">
+      <span class="caret"></span>
+    </label>
+    <div class="voice-list" id="voice-list" role="listbox" aria-label="Reference voice"></div>
+    <div class="upload-saver" id="upload-saver" hidden>
+      <span class="label">Save upload to bank</span>
+      <div class="inline-form">
+        <input type="text" id="upload-name" class="field mono" placeholder="voice name" aria-label="Voice name">
+        <button class="btn-ghost" id="upload-save">SAVE</button>
+      </div>
+    </div>
+    <label class="dropzone" id="dropzone">
+      <input type="file" id="ref-file" accept="audio/*,.wav,.mp3,.flac,.ogg,.m4a" hidden>
+      <span class="dz-inner mono">
+        <b>DROP REF CLIP</b>
+        ≥10 S · WAV / MP3 / FLAC
+      </span>
+    </label>
+  </aside>
+
+  <main class="main">
+
+    <!-- ── Generate ───────────────────────────── -->
+    <section class="view" data-view="generate">
+      <div class="panel editor-panel">
+        <span class="tick"></span>
+        <div class="row-between wrap">
+          <h1 class="h1"><span class="holo">SCENE_PROMPT</span><span class="mono dim ext">.txt</span></h1>
+          <span class="mono hint">DIALOGUE IN <span class="q">"QUOTES"</span> · DIRECTION OUTSIDE · <span id="char-count">0</span> CHARS</span>
+        </div>
+        <div class="editor">
+          <pre class="editor-hl mono" id="prompt-hl" aria-hidden="true"></pre>
+          <textarea id="prompt" class="editor-input mono" spellcheck="false" aria-label="Scene prompt"
+            placeholder='A woman speaks warmly, "Hello, how are you today?" She laughs, "Hahaha, it is so good to see you!"'></textarea>
+        </div>
+        <div class="chip-rows">
+          <div class="chip-row"><span class="label">Speaker</span><div class="chips" id="speaker-chips"></div></div>
+          <div class="chip-row"><span class="label">Cue_fx</span><div class="chips" id="cue-chips"></div></div>
+          <div class="chip-row"><span class="label">Edit</span><div class="chips">
+            <button class="chip" id="wrap-quotes" title='Wrap the selection in "double quotes"'>"WRAP IN QUOTES"</button>
+            <button class="chip" id="clear-prompt">CLEAR</button>
+          </div></div>
+        </div>
+        <div class="action-bar">
+          <span class="ref-pill mono" id="ref-pill"><span class="accent">◢</span><span id="ref-label">DEFAULT VOICE</span></span>
+          <span class="mono dim small" id="param-summary"></span>
+          <div class="grow"></div>
+          <span class="mono rec" id="rec">● REC ARMED</span>
+          <button class="go" id="go">RENDER TAKE ▶</button>
+        </div>
+      </div>
+
+      <div class="presets">
+        <span class="label">Load_preset</span>
+        <div class="preset-grid" id="preset-grid"></div>
+      </div>
+    </section>
+
+    <!-- ── Dialogue ───────────────────────────── -->
+    <section class="view" data-view="dialogue" hidden>
+      <div class="panel">
+        <span class="tick"></span>
+        <div class="row-between wrap">
+          <h1 class="h1"><span class="holo">SCRIPT</span><span class="mono dim ext">.dlg</span></h1>
+          <span class="mono hint">FORMAT <span class="q">NAME: LINE</span> · ONE PER ROW · <span class="q">：</span> WORKS TOO</span>
+        </div>
+        <textarea id="script" class="script mono" spellcheck="false" aria-label="Script"
+          placeholder="Alex: Long time no see, brother!&#10;Sam: Yeah, almost ten years now.&#10;Alex: Do you remember that time we..."></textarea>
+        <div class="action-bar">
+          <span class="mono dim small" id="parse-status">PASTE A SCRIPT, THEN PARSE</span>
+          <div class="grow"></div>
+          <button class="btn-ghost" id="parse">PARSE CAST ▸</button>
+        </div>
+      </div>
+
+      <div class="panel" id="cast-panel" hidden>
+        <span class="tick"></span>
+        <span class="label">Cast</span>
+        <div class="cast" id="cast"></div>
+      </div>
+
+      <div class="panel" id="lines-panel" hidden>
+        <span class="tick"></span>
+        <div class="row-between wrap">
+          <span class="label">Lines</span>
+          <label class="mono small dim set-all">SET ALL EMOTIONS
+            <select id="emotion-all" class="field select mono"></select>
+          </label>
+        </div>
+        <ol class="lines" id="lines"></ol>
+        <div class="action-bar">
+          <label class="range-inline mono small">SPEED <input type="range" id="dlg-speed" min="0.5" max="2" step="0.05" value="1"><b id="dlg-speed-v">1.00×</b></label>
+          <div class="grow"></div>
+          <button class="go" id="dlg-go">RENDER DIALOGUE ▶</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── Voices ─────────────────────────────── -->
+    <section class="view" data-view="voices" hidden>
+      <div class="panel">
+        <span class="tick"></span>
+        <div class="row-between wrap">
+          <h1 class="h1"><span class="holo">VOICE_BANK</span><span class="mono dim ext">/manage</span></h1>
+          <span class="mono hint">REFERENCE CLIPS · 10 S OR LONGER WORKS BEST</span>
+        </div>
+        <div class="add-voice">
+          <label class="btn-ghost file-btn">CHOOSE CLIP<input type="file" id="vm-file" accept="audio/*,.wav,.mp3,.flac,.ogg,.m4a" hidden></label>
+          <span class="mono small dim" id="vm-file-name">NO FILE</span>
+          <input type="text" id="vm-name" class="field mono" placeholder="voice name, e.g. Heroine" aria-label="New voice name">
+          <button class="go small-go" id="vm-save">ADD VOICE</button>
+        </div>
+      </div>
+      <div class="voice-grid" id="voice-grid"></div>
+    </section>
+  </main>
+
+  <!-- ── Output / history / params ───────────── -->
+  <aside class="side">
+    <div class="panel output" id="output">
+      <span class="tick"></span>
+      <div class="sweep" aria-hidden="true"></div>
+      <div class="row-between">
+        <span class="label accent" id="out-title">NO_SIGNAL</span>
+        <span class="mono small dim" id="out-meta"></span>
+      </div>
+      <div class="wave" id="wave">
+        <canvas id="wave-canvas" aria-label="Waveform. Click to seek."></canvas>
+        <div class="playhead" id="playhead" hidden></div>
+        <div class="wave-empty mono" id="wave-empty">AWAITING TAKE</div>
+      </div>
+      <div class="progress" id="progress" hidden><div class="progress-fill" id="progress-fill"></div></div>
+      <div class="mono small progress-label" id="progress-label" hidden></div>
+      <div class="transport">
+        <button class="play" id="play" aria-label="Play" disabled><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path id="play-icon" d="M7 4v16l13-8z"/></svg></button>
+        <span class="mono time" id="time">00:00<span class="dim"> / </span>00:00</span>
+        <div class="grow"></div>
+        <a class="icon-btn" id="download" aria-label="Download" download hidden><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="square" aria-hidden="true"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg></a>
+        <button class="icon-btn" id="reuse" aria-label="Reuse these settings" title="Reuse these settings" hidden><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="square" aria-hidden="true"><path d="M4 12a8 8 0 1 0 2.4-5.7L4 8.6M4 4v4.6h4.6"/></svg></button>
+      </div>
+      <audio id="audio" preload="auto"></audio>
+    </div>
+
+    <div class="panel">
+      <div class="row-between">
+        <span class="label">Take_log</span>
+        <button class="link mono small" id="refresh-log">REFRESH ↻</button>
+      </div>
+      <div class="log" id="log"></div>
+    </div>
+
+    <div class="panel params" id="params">
+      <span class="label">Inference_params</span>
+      <div class="param" data-key="cfg"><div class="param-head mono"><span>CFG_GUIDANCE</span><b></b></div><input type="range" min="1" max="10" step="0.5" aria-label="CFG guidance scale"></div>
+      <div class="param" data-key="stg"><div class="param-head mono"><span>STG</span><b></b></div><input type="range" min="0" max="5" step="0.5" aria-label="Skip-token guidance"></div>
+      <div class="param" data-key="speed"><div class="param-head mono"><span>SPEED</span><b></b></div><input type="range" min="0.5" max="2" step="0.05" value="1" aria-label="Speed, pitch unchanged"></div>
+      <div class="param" data-key="gen_dur"><div class="param-head mono"><span>TARGET_LEN</span><b></b></div><input type="range" min="0" max="60" step="1" value="0" aria-label="Target duration in seconds, 0 is auto"></div>
+      <div class="param seed-row mono">
+        <span>SEED</span>
+        <input type="number" id="seed" class="field mono" step="1" aria-label="Seed">
+        <button class="icon-btn" id="seed-roll" aria-label="Random seed" title="Random seed"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" aria-hidden="true"><rect x="4" y="4" width="16" height="16"/><circle cx="9" cy="9" r="1.3" fill="currentColor"/><circle cx="15" cy="15" r="1.3" fill="currentColor"/><circle cx="15" cy="9" r="1.3" fill="currentColor"/><circle cx="9" cy="15" r="1.3" fill="currentColor"/></svg></button>
+      </div>
+      <details class="adv">
+        <summary class="mono">&gt; ADVANCED: LENGTH / MEMORY / GEMMA</summary>
+        <div class="param" data-key="dur_mult"><div class="param-head mono"><span>DURATION_MULT <i class="dim">(when target = auto)</i></span><b></b></div><input type="range" min="0.8" max="2" step="0.05" value="1.1" aria-label="Duration multiplier"></div>
+        <div class="param" data-key="ref_dur"><div class="param-head mono"><span>REF_LENGTH_USED</span><b></b></div><input type="range" min="3" max="30" step="1" value="10" aria-label="Reference length used in seconds"></div>
+        <label class="check mono small"><input type="checkbox" id="opt-trim"> PADDING TRIM <i class="dim">— Gemma runs on real tokens only (faster, ~0.5% rounding diff)</i></label>
+        <label class="mono small stack">GEMMA OUTPUT<select id="opt-gemma" class="field select mono"></select></label>
+        <div class="mono small dim" id="opt-status"></div>
+        <div class="mono small dim" id="tier-info"></div>
+      </details>
+    </div>
+  </aside>
+</div>
+
+<footer class="foot mono">
+  <span>BUILT BY <b class="neon">SIDDID SONI</b></span>
+  <a href="https://github.com/Siddid-Soni/DramaBoxStudio" target="_blank" rel="noopener">GITHUB ↗</a>
+  <div class="grow"></div>
+  <span>LOCAL INFERENCE · RESEMBLE AI DRAMABOX · LTX-2.3</span>
+</footer>
+
+<div class="toast mono" id="toast" role="status" aria-live="polite" hidden></div>
+<script src="studio.js"></script>
+</body>
+</html>
