@@ -21,7 +21,7 @@ A community distribution of **Resemble AI's DramaBox** — expressive, prompt-dr
 | VRAM peak | ~24 GB | **~8 GB** (8 GB cards supported) |
 | VRAM config | Manual | **Auto-detect** (3 CUDA tiers + 2 Apple Silicon tiers) |
 | Apple Silicon | No | **MLX Gemma + MPS** (16 GB / 24 GB+ Macs) |
-| UI | Default Gradio | **Midnight Gold** dark cinematic theme |
+| UI | Default Gradio | **Night City HUD** web frontend (FastAPI + plain JS, no build step) with take history and a waveform player |
 | Voice library | None | **Upload / name / list / delete** |
 | Dialogue workshop | None | **Script → auto-parse characters → batch generate** |
 | Prompt examples | 2 English | **8 dramatic scene examples** with full stage directions |
@@ -95,7 +95,7 @@ pip install -r requirements.txt
 python app.py
 ```
 
-Open `http://localhost:7860` in your browser.
+Open `http://localhost:7860` in your browser (it opens by itself; set `DRAMABOX_NO_BROWSER=1` to stop that, `DRAMABOX_PORT` to change the port).
 
 ### Model Download
 
@@ -245,6 +245,14 @@ The DiT and audio components go in `models/checkpoints/` as above; `models/gemma
 | `duration_multiplier` | 1.1 | 10% breathing room on auto-estimated length |
 | `steps` | 30 | Euler flow matching |
 | Speed | 0.5–2.0x | Tempo change without pitch shift |
+
+### Web UI and API
+
+The UI in `web/` is static HTML/CSS/JS served by `app.py`, which exposes a small JSON API (browse it at `/api/docs`).
+Renders go through a single-worker queue (up to 10 waiting), so the GPU runs one job at a time; each render in
+`output/` gets a `.json` sidecar with its settings, which the take log uses for "reuse settings". The **FX** button in
+the header turns the scanlines, glitch and other animations off (they are also off when the OS asks for reduced
+motion). Fonts (Tektur, JetBrains Mono, Michroma — SIL Open Font License) ship in `web/fonts/`, so it works offline.
 
 ---
 

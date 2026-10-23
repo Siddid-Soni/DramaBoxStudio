@@ -15,6 +15,7 @@ WZF312/
 # Generated audio outputs
 output/**/*.wav
 output/**/*.mp3
+output/**/*.json
 
 # Demo video source (copy in assets/)
 功能展示.mp4
