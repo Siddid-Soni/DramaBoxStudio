@@ -12,6 +12,14 @@ It runs on NVIDIA GPUs from 8 GB up, and on Apple Silicon.
 
 ---
 
+## Demo
+
+![DramaBox Studio demo](assets/demo.gif)
+
+Full-quality video: [assets/demo.mp4](assets/demo.mp4)
+
+---
+
 ## Features
 
 - **Generate** — write a prompt, pick a reference voice, render. Speaker-tag chips, 18 non-verbal cue chips, a wrap-selection-in-quotes button, and 8 scene presets with full stage directions.
