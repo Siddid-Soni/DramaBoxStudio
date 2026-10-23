@@ -26,6 +26,7 @@ import hashlib  # noqa: E402
 import json  # noqa: E402
 import logging  # noqa: E402
 import sys  # noqa: E402
+import threading  # noqa: E402
 import time  # noqa: E402
 from pathlib import Path  # noqa: E402
 
@@ -127,6 +128,7 @@ class TTSServer:
         self.patchifier = AudioPatchifier(patch_size=1)
         self.trim = self.ALWAYS_TRIM or TRIM_PADDING
         self.gemma_output = gemma_output
+        self._lock = threading.RLock()   # settings never change in the middle of an encode or a generation
 
         self._prompt_encoder = None
         self._velocity_model = None
@@ -230,7 +232,8 @@ class TTSServer:
     # ── 提示词嵌入缓存 ────────────────────────────────
 
     def _embed_path(self, prompt: str) -> Path:
-        key = f"{self.EMBED_KEY}{'-trim' if self.trim else ''}\0{prompt}"
+        # project gives slightly different embeddings; full / real / project-exact are identical, so they share one
+        key = f"{self.EMBED_KEY}{'-trim' if self.trim else ''}{'-proj' if self.gemma_output == 'project' else ''}\0{prompt}"
         return EMBED_CACHE_DIR / f"{hashlib.sha256(key.encode()).hexdigest()[:16]}.pt"
 
     def _cached_embed(self, prompt: str) -> torch.Tensor | None:
@@ -252,9 +255,26 @@ class TTSServer:
         except Exception as e:
             log.warning(f"嵌入缓存写入失败 ({e})")
 
+    def set_options(self, trim: bool | None = None, gemma_output: str | None = None) -> str:
+        """Change DRAMABOX_TRIM_PADDING / DRAMABOX_GEMMA_OUTPUT at runtime (the UI's inference settings); takes effect
+        on the next prompt. Returns a short status for the UI."""
+        with self._lock:
+            if trim is not None and not self.ALWAYS_TRIM:
+                self.trim = bool(trim)
+            if gemma_output is not None:
+                from config import GEMMA_OUTPUT_MODES
+                if gemma_output not in GEMMA_OUTPUT_MODES:
+                    raise ValueError(f"gemma_output must be one of {GEMMA_OUTPUT_MODES}")
+                self.gemma_output = gemma_output
+            return f"trim {'on' if self.trim else 'off'} · Gemma output {self.gemma_output}"
+
     @torch.inference_mode()
     def encode(self, prompts: list[str]) -> None:
         """编码尚未缓存的提示词。批量生成前先把全部提示词传进来，低显存档就只切换一次阶段。"""
+        with self._lock:
+            self._encode(prompts)
+
+    def _encode(self, prompts: list[str]) -> None:
         todo = [p for p in dict.fromkeys(prompts) if self._cached_embed(p) is None]
         if not todo:
             return
@@ -355,6 +375,12 @@ class TTSServer:
         rescale_scale: str | float = "auto",
         gen_duration: float = 0.0,
     ) -> tuple[torch.Tensor, int]:
+        with self._lock:
+            return self._generate(prompt, voice_ref, cfg_scale, stg_scale, duration_multiplier, seed, ref_duration,
+                                  rescale_scale, gen_duration)
+
+    def _generate(self, prompt, voice_ref, cfg_scale, stg_scale, duration_multiplier, seed, ref_duration,
+                  rescale_scale, gen_duration) -> tuple[torch.Tensor, int]:
         t_total = time.time()
 
         if gen_duration > 0:
@@ -617,6 +643,30 @@ class LowVramTTSServer(TTSServer):
 
     def _audio_on(self) -> None:
         self._use("audio")
+
+    def set_options(self, trim: bool | None = None, gemma_output: str | None = None) -> str:
+        """On low, switching between full / real and project / project-exact moves the feature extractor between the
+        Gemma and embed stages: those stages are dropped and rebuilt on the next new prompt (ssd: restart instead)."""
+        with self._lock:
+            project = self.tier == "low" and gemma_output is not None and gemma_output.startswith("project")
+            if gemma_output is not None and self.tier == "low" and project != self.project:
+                if self.park == "ssd":
+                    raise ValueError("With DRAMABOX_PARK=ssd, switching between full/real and project modes needs a "
+                                     "restart with DRAMABOX_GEMMA_OUTPUT set")
+                self._reset_text_side()
+                self.project = project
+            return super().set_options(trim, gemma_output)
+
+    def _reset_text_side(self) -> None:
+        """Drop the Gemma and embed stages (on the GPU or parked) so they are rebuilt for the new layout."""
+        for s in ("gemma", "embed"):
+            m = self._mirrors.pop(s, None)
+            if m is not None:
+                m.release()
+            self._on.discard(s)
+        self._gemma = self._embedder = None
+        _free()
+        log.info("Gemma side dropped; rebuilt on the next new prompt")
 
     def _gemma_output(self, prompt: str):
         """low: Gemma (+ the projection in project modes) on one prompt → what waits in host RAM, and the mask.

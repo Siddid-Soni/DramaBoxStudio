@@ -10,7 +10,7 @@
 
 A community distribution of **Resemble AI's DramaBox** — expressive, prompt-driven TTS with voice cloning. The prompt controls speaker identity, emotion, delivery, laughs, sighs, pauses and transitions; a 10-second voice reference clones the target timbre.
 
-**Built for Chinese users. Optimized for low-VRAM GPUs. Batteries included.**
+**English UI. Optimized for low-VRAM GPUs and Apple Silicon. Batteries included.**
 
 ---
 
@@ -24,9 +24,9 @@ A community distribution of **Resemble AI's DramaBox** — expressive, prompt-dr
 | UI | Default Gradio | **Midnight Gold** dark cinematic theme |
 | Voice library | None | **Upload / name / list / delete** |
 | Dialogue workshop | None | **Script → auto-parse characters → batch generate** |
-| Prompt examples | 2 English | **8 Chinese-scene examples** with English direction |
+| Prompt examples | 2 English | **8 dramatic scene examples** with full stage directions |
 | Prompt helpers | None | **One-click speaker tags + 18 non-verbal cues + quote wrapper** |
-| Language | English prompts | English direction + Chinese dialogue supported |
+| Language | English prompts | English UI; English direction with English or Chinese dialogue |
 
 ---
 
@@ -193,6 +193,8 @@ DRAMABOX_TRIM_PADDING=0 DRAMABOX_GEMMA_OUTPUT=project-exact python app.py
 | `DRAMABOX_TRIM_PADDING` | `1`, `0` | `1` |
 | `DRAMABOX_INT8` | `1` | off |
 | `DRAMABOX_MLX_GEMMA` | path to an MLX Gemma folder | `models/gemma-mlx` |
+
+Padding trim and Gemma output can also be changed live in the UI (**Quick Generate → ⚙️ Inference settings → Speed / memory**); they apply to the next prompt in both tabs. Tier, parking and INT8 decide how the models are loaded, so they need a restart. On the `low` tier, switching between `full` / `real` and the `project` modes rebuilds the Gemma side on the next new prompt (a few seconds; with `DRAMABOX_PARK=ssd` it needs a restart instead).
 
 ---
 

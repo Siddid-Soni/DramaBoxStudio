@@ -1,4 +1,4 @@
-"""对话工坊 — 剧本解析 + 批量生成 + 拼接。
+"""Dialogue workshop — script parsing, batch generation, joining.
 
 Modified by Siddid Soni, 2026-10: all lines are encoded in one batch before voicing.
 """
@@ -17,45 +17,44 @@ log = logging.getLogger(__name__)
 
 _LINE_RE = re.compile(r"^(.+?)[：:]\s*(.+)$")
 
-# ── 情感预设：中文标签（UI 显示）→ 英文导演指令（喂模型）──────────
-# 模型(DramaBox)情感表演用英文自然语言效果最好，故指令走英文；UI 标签保持中文。
-# 想调某个情绪的强弱/效果，只改右边这句英文即可（生成后用耳朵听着调）。
+# ── Emotion presets: UI label → English direction fed to the model ──
+# The direction goes outside the quotes (performed, not spoken). Tune an emotion by editing its sentence.
 EMOTION_PRESETS: dict[str, str] = {
-    "正常": "语气平静自然地说道",
-    "开心": "心情愉悦、语气温暖，带着藏不住的笑意爽朗地说道",
-    "兴奋": "情绪饱满、语速加快、铿锵有力地大声说道",
-    "愤怒": "怒火中烧、咬牙切齿，猛地拔高音量厉声怒喝道",
-    "悲伤": "声音哽咽、字字沉重，强忍着泪意悲伤地说道",
-    "恐惧": "声音发颤、气息急促不稳，惊恐不安地说道",
-    "温柔": "放轻了声音、语气绵软温暖，柔声细语地说道",
-    "深情": "饱含深情、语气真挚动人，缱绻款款地诉说道",
-    "惊讶": "猛地一愣、语气陡然加重，难以置信地沉声说道",
-    "大笑": "再也忍俊不禁、爽朗放声大笑着说道",
-    "冷漠": "语气平淡疏离、不带一丝起伏，冷冷地说道",
-    "讽刺": "嘴角噙着冷笑、阴阳怪气地拉长腔调讥讽道",
-    "严肃": "神色一沉、语气凝重，一字一顿地郑重说道",
-    "疲惫": "声音低沉乏力、有气无力，疲惫地缓缓叹道",
-    "命令": "语气强硬、不容置疑，居高临下地厉声命令道",
-    # 天生偏女性化的语气，UI 标注（女声），避免用在男声音色上变声
-    "撒娇（女声）": "嗲声嗲气、尾音上扬并娇软地拖长，撒娇耍赖地说道",
-    "娇媚（女声）": "声音甜糯柔媚、缠绵婉转，带着三分娇、七分媚，眼波流转般妩媚动人地低声说道",
-    "媚惑（女声）": "嗓音低柔微哑、黏糯缠绵，字字慢条斯理地勾着尾音，含着一抹勾魂摄魄的笑意，魅惑撩人地低声说道",
-    "性感低语（女声）": "把声音压到极低极软、几乎全是温热的气声，像凑在耳边、欲语还休地轻吐每个字，慵懒而极尽性感地呢喃道",
+    "Normal": "A person speaks calmly and naturally",
+    "Happy": "A person speaks warmly and brightly, a smile they can't hide in their voice",
+    "Excited": "A person speaks loudly with full energy, the pace quickening, every word ringing",
+    "Angry": "A person seethes through clenched teeth, then suddenly raises their voice in a furious shout",
+    "Sad": "A person speaks in a choked voice, every word heavy, holding back tears",
+    "Afraid": "A person speaks with a trembling voice, breath short and unsteady, frightened",
+    "Gentle": "A person speaks softly, their voice light, warm and tender",
+    "Affectionate": "A person speaks with deep feeling, sincere and moving, lingering on each word",
+    "Surprised": "A person freezes for a beat, then speaks with sudden weight, unable to believe it",
+    "Laughing": "A person can't hold it in any longer and speaks through hearty, open laughter",
+    "Cold": "A person speaks flatly and distantly, without a flicker of emotion",
+    "Sarcastic": "A person speaks with a cold smirk, drawing out the words in a mocking, sardonic tone",
+    "Serious": "A person's expression darkens; they speak gravely, word by deliberate word",
+    "Tired": "A person sighs the words out slowly, voice low and drained of energy",
+    "Commanding": "A person speaks firmly from above, leaving no room for argument, a sharp command",
+    # Naturally feminine deliveries, marked (female) in the UI so they aren't used on male voices
+    "Pleading (female)": "A young woman whines sweetly, her pitch lifting and her words drawn out in a soft, pouty plea",
+    "Coquettish (female)": "A woman speaks in a sweet, soft and flirtatious voice, playful and charming",
+    "Seductive (female)": "A woman speaks low and slightly husky, slow and lingering, each word curling with an alluring smile",
+    "Sultry whisper (female)": "A woman drops her voice to an intimate, breathy whisper, as if close to the ear, languid and sultry",
 }
-# 供 UI 下拉使用的标签列表（中文）
+# Labels for the UI dropdowns
 EMOTION_LABELS: list[str] = list(EMOTION_PRESETS.keys())
 
 
 def parse_script(text: str) -> list[dict]:
-    """解析剧本，返回 [{character, line}, ...]。
+    """Parse a script into [{character, line}, ...].
 
-    支持格式：
-        张三：你好啊！
-        李四: 好久不见。
-        张三："这是对话内容"
-        （无角色前缀的行合并到上一句）
+    Formats (ASCII or Chinese colon):
+        Alex: Hello there!
+        Sam：Long time no see.
+        Alex: "Quoted dialogue"
+        (a line without a name prefix is appended to the previous line)
 
-    返回的 character 可能为 None（无法识别角色时）。
+    Lines with no detectable character are given to the Narrator.
     """
     results: list[dict] = []
     for raw in text.strip().splitlines():
@@ -70,7 +69,7 @@ def parse_script(text: str) -> list[dict]:
             char = ""
             content = line
 
-        # 去掉首尾引号
+        # strip surrounding quotes
         for _q in ('"', "'", '“', '”', '‘', '’', '＂', '「', '」'):
             if content.startswith(_q):
                 content = content[len(_q):]
@@ -81,11 +80,11 @@ def parse_script(text: str) -> list[dict]:
             continue
 
         character = char if char else None
-        # 如果无角色，合并到上一句
+        # no character: append to the previous line
         if character is None and results:
             results[-1]["line"] += content
         else:
-            results.append({"character": character or "旁白", "line": content})
+            results.append({"character": character or "Narrator", "line": content})
 
     return results
 
@@ -96,22 +95,22 @@ def generate_dialogue(
     tts,
     progress_cb=None,
 ) -> str | None:
-    """逐句生成 → 拼接 → 返回完整音频路径。
+    """Voice each line → join → return the path of the full audio.
 
-    lines:       parse_script() 的输出
-    voice_map:   {角色名: 参考音频路径}
-    tts:         TTSServer 实例
-    progress_cb: 可选回调 (current, total, character, line)
+    lines:       parse_script() output
+    voice_map:   {character name: reference clip path}
+    tts:         a TTSServer
+    progress_cb: optional callback (current, total, character, line)
     """
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
     segments: list[np.ndarray] = []
     sr = 24000
     total = len(lines)
 
-    # 官方格式：导演指令在引号外（不会被念出），台词在双引号内（原样念）
-    prompts = [f'{EMOTION_PRESETS.get(item.get("emotion") or "正常", EMOTION_PRESETS["正常"])}，"{item["line"]}"'
+    # Official format: direction outside the quotes (not spoken), the line inside double quotes
+    prompts = [f'{EMOTION_PRESETS.get(item.get("emotion") or "Normal", EMOTION_PRESETS["Normal"])}, "{item["line"]}"'
                for item in lines]
-    # 先一次性编码全部台词：低显存档只切换一次 GPU 阶段
+    # Encode every line first: the low-VRAM tiers swap GPU stages once
     from inference_server import DEFAULT_NEG
     tts.encode([*prompts, DEFAULT_NEG])
 
@@ -135,7 +134,7 @@ def generate_dialogue(
         segments.append(wav_np)
         sr = sample_rate
 
-        # 句间小停顿 0.3s
+        # 0.3 s pause between lines
         silence = np.zeros(int(sr * 0.3), dtype=np.float32)
         segments.append(silence)
 
@@ -146,5 +145,5 @@ def generate_dialogue(
     merged_int16 = (merged * 32767).clip(-32768, 32767).astype(np.int16)
     out_path = OUTPUT_DIR / f"dialogue_{int(time.time())}.wav"
     wav_write(str(out_path), sr, merged_int16)
-    log.info(f"对话生成完成: {out_path} ({len(segments)//2} 句, {len(merged)/sr:.1f}s)")
+    log.info(f"Dialogue done: {out_path} ({len(segments)//2} lines, {len(merged)/sr:.1f}s)")
     return str(out_path)
