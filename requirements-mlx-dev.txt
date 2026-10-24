@@ -1,0 +1,3 @@
+# Test tooling for the MLX port (pure-function tests run without model weights).
+-r requirements-mlx.txt
+pytest>=7,<9
