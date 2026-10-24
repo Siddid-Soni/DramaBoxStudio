@@ -31,3 +31,6 @@ cache/
 
 # Local virtualenv
 .venv/
+
+# Full MLX CLI virtualenv
+.venv-mlx/

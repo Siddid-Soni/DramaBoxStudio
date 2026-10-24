@@ -1,0 +1,8 @@
+# Optional end-to-end validation tooling for the MLX port.
+#
+# `mlx-whisper` is used to transcribe generated audio (see "Validation" in
+# README_MLX.md). It depends on `torch` (and `torchaudio`) for its audio
+# front-end, so installing this file pulls PyTorch into the environment.
+# The inference path never imports torch.
+-r requirements-mlx-dev.txt
+mlx-whisper>=0.4,<0.5

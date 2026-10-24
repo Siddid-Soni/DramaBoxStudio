@@ -93,6 +93,8 @@ python app.py
 
 The DiT and audio components go in `models/checkpoints/` as above; `models/gemma/` (bnb 4-bit) is not needed on a Mac. `DRAMABOX_MLX_GEMMA` points at another MLX Gemma folder.
 
+For a full-MLX path (DiT + Gemma + VAE/vocoder, no PyTorch at inference), see [`README_MLX.md`](README_MLX.md) and `src/mlx_tts.py`. It is a standalone CLI, separate from the Studio app above, which keeps the DiT on MPS.
+
 ---
 
 ## Speed & Memory Features

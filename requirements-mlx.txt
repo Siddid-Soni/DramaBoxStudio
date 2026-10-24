@@ -1,0 +1,26 @@
+# Runtime requirements for DramaBox on Apple Silicon (MLX).
+#
+# No PyTorch and no CUDA at inference. `torch` is only pulled by the optional
+# validation tooling (see requirements-mlx-validation.txt).
+#
+# The bounds below are the versions this port was tested against:
+# mlx 0.32.4, mlx-lm 0.32.2, safetensors 0.8.0, transformers 5.20.2, huggingface_hub 2.3.0,
+# numpy 2.5.4, soundfile 0.14.0, soxr 1.1.0, av 19.0.2, mlx-arsenal 0.17.0.
+# Raise them only after re-running the parity/validation checks. A fully
+# resolved lockfile is not committed.
+mlx>=0.32,<0.33
+mlx-lm>=0.32.2,<0.33
+safetensors>=0.4,<1
+# `ltx-core-mlx` is a pinned fork: dgrauet/ltx-2-mlx @ 14a3ddd, package version 0.18.0.
+# It is a fork of Lightricks' LTX-2 MLX implementation (MIT) and supplies the
+# audio VAE/BWE/vocoder primitives this port builds on (`ltx_core_mlx.model.audio_vae`).
+# Bumping the commit changes those internals, so re-run the parity checks and the
+# audio codec key-map test (1331/1331) before updating the SHA.
+ltx-core-mlx @ git+https://github.com/dgrauet/ltx-2-mlx.git@14a3ddd6054736beb45b4d836135fa4d44490531#subdirectory=packages/ltx-core-mlx
+mlx-arsenal>=0.17,<0.18
+transformers>=5.7,<6
+huggingface_hub>=0.26,<3
+numpy>=1.26,<3
+soundfile>=0.12,<1
+soxr>=1.0,<2
+av>=12,<20
