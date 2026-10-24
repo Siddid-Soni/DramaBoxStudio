@@ -93,9 +93,9 @@ class AudioTextConnector(nn.Module):
 
 
 def remap_text_key(key: str) -> str | None:
-    for prefix in ("text_embedding_projection.audio_aggregate_embed.",):
-        if key.startswith(prefix):
-            return "audio_aggregate_embed." + key[len(prefix):]
+    prefix = "text_embedding_projection.audio_aggregate_embed."
+    if key.startswith(prefix):
+        return "audio_aggregate_embed." + key[len(prefix):]
     prefix = "model.diffusion_model.audio_embeddings_connector."
     if key.startswith(prefix):
         return "audio_embeddings_connector." + key[len(prefix):]

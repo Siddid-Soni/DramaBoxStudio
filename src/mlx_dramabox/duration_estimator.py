@@ -1,9 +1,7 @@
 """Pure-Python speech-duration estimator for DramaBox prompts.
 
-Originally lived in ``inference.py``; moved here so chunkers, tooling and unit
-tests can import it without pulling torch and the LTX pipeline through
-sys.path. ``inference.py`` and ``inference_server.py`` continue to import
-``estimate_speech_duration`` from here.
+Vendored for the standalone MLX CLI. The Studio app keeps its own copy in
+``src/inference.py``; this module is used only by ``mlx_dramabox``.
 """
 from __future__ import annotations
 

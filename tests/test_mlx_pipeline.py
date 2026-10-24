@@ -187,6 +187,12 @@ def test_generate_long_rejects_empty_chunks(monkeypatch):
         server.generate_long("   ", max_chunk_duration=45.0)
 
 
+def test_generate_long_rejects_precomputed():
+    server = object.__new__(DramaBoxMLX)
+    with pytest.raises(ValueError, match="precomputed"):
+        server.generate_long("hello", precomputed=(mx.zeros((1, 2, 2)), None))
+
+
 def test_generate_long_rejects_gen_duration():
     server = object.__new__(DramaBoxMLX)
     with pytest.raises(ValueError, match="gen_duration"):

@@ -39,7 +39,7 @@ MAX_STEPS = 200
 _NEG_CACHE: "OrderedDict[tuple, tuple[mx.array, object]]" = OrderedDict()
 _NEG_CACHE_MAX = 4
 # Voice-reference cache: validated file identity + requested duration -> (tokens, positions).
-_REF_CACHE: "OrderedDict[tuple, tuple[mx.array, mx.array]]" = OrderedDict()
+_REF_CACHE: "OrderedDict[tuple, tuple[mx.array, mx.array, object]]" = OrderedDict()
 _REF_CACHE_MAX = 4
 
 
@@ -525,6 +525,9 @@ class DramaBoxMLX:
             print("[mlx] warning: output is ignored by generate_long(); write the returned "
                   "waveform instead", flush=True)
             kwargs.pop("output")
+        if "precomputed" in kwargs:
+            raise ValueError(
+                "generate_long() encodes its own chunk contexts; do not pass precomputed")
         if chunk_seed_mode not in ("same", "indexed"):
             raise ValueError(
                 f"chunk_seed_mode must be 'same' or 'indexed', got {chunk_seed_mode!r}")
